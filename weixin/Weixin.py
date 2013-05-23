@@ -64,7 +64,7 @@ class Weixin(object):
     def _toxml(self, content):
         seq = []
         if isinstance(content, dict):
-            for key, value in content.itmes():
+            for key, value in content.items():
                 if isinstance(value, (unicode, str)):
                     seq.append("<%s>%s</%s>" % (key, self._cdata(value), key))
                 elif isinstance(value, (list, dict)):
