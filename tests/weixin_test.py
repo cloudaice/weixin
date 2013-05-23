@@ -4,6 +4,10 @@ from nose.tools import *
 from weixin.Weixin import Weixin
 import hashlib
 import time
+try:
+    import xml.etree.cElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
 
 
 def test_weixin_token():
@@ -52,7 +56,7 @@ def test_handle_request():
     assert_equal(weixinhandler.MsgType, "text")
     assert_equal(weixinhandler.ToUserName, "toUser")
     assert_equal(weixinhandler.FromUserName, "fromUser")
-    assert_equal(weixinhandler.CreateTime, "1348831860")
+    assert_equal(weixinhandler.CreateTime, 1348831860)
     assert_equal(weixinhandler.FuncFlag, 0)
 
 
@@ -66,7 +70,13 @@ def test_toxml():
     weixinhandler = Weixin(token='weixin-token')
     dic1 = {"name": "cloudaice", "age": 23}
     xml = weixinhandler._toxml(dic1)
-    assert_equal(xml, "<name><![CDATA[cloudaice]]></name><age>23</age>")
+    root = ET.fromstring("<xml>" + xml + "</xml>")
+    params = dict()
+    for elem in root:
+        params[elem.tag] = elem.text
+    if "age" in params:
+        params["age"] = int(params["age"])
+    assert_equal(params, dic1)
 
 
 def test_music():
@@ -75,10 +85,21 @@ def test_music():
                    MusicUrl="http://cloudaice.com/music",
                    HQMusicUrl="http://cloudaice.com/hqmusic")
     weixinhandler.music(content)
-    xml_music = "<Music>" + \
-        "<Title><![CDATA[天空之城]]></Title>" + \
-        "<Description><![CDATA[著名陶笛音乐]]></Description>" + \
-        "<MusicUrl><![CDATA[http://cloudaice.com/music]]></MusicUrl>" + \
-        "<HQMusic><![CDATA[http://cloudaice.com/hqmusic]]></HQMusic>" + \
-        "</Music>"
-    assert_equal(weixinhandler.content, xml_music)
+    root = ET.fromstring(weixinhandler.content)
+    params = dict()
+    for elem in root:
+        params[elem.tag] = elem.text
+    for k, v in params.items():
+        if isinstance(k, unicode):
+            k = k.encode("utf-8")
+        if isinstance(v, unicode):
+            v = v.encode("utf-8")
+        params[k] = v
+    assert_equal(content, params)
+
+
+def test_text():
+    weixinhandler = Weixin(token="weixin-token")
+    content = "你好，我在测试微信开放API的Python包"
+    weixinhandler.text(content)
+    assert_equal(weixinhandler.content, "<Content><![CDATA[你好，我在测试微信开放API的Python包]]></Content>")
