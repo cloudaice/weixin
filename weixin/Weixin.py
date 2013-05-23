@@ -70,7 +70,7 @@ class Weixin(object):
                 elif isinstance(value, (list, dict)):
                     seq.append("<%s>%s</%s>" % (key, self._toxml(value), key))
                 elif isinstance(value, int):
-                    seq.append("<%s>%s</%s>" % (key, value, key))
+                    seq.append("<%s>%d</%s>" % (key, value, key))
                 else:
                     raise "%s is not support" % type(content)
         elif isinstance(content, list):
