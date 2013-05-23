@@ -1,22 +1,10 @@
 #-*-coding: utf-8-*-
 
+import hashlib
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
-
-import hashlib
-
-
-Api_Request = {
-    "text": ["ToUserName", "FromUserName", "CreateTime", "Content", "MsgId"],
-    "image": ["ToUserName", "FromUserName", "CreateTime", "PicUrl", "MsgId"],
-    "location": ["ToUserName", "FromUserName", "CreateTime", "Location_X",
-                 "Location_Y", "Scale", "Label", "MsgId"],
-    "link": ["ToUserName", "FromUserName", "CreateTime", "Title", "Description",
-             "Url", "MsgId"],
-    "event": ["ToUserName", "FromUserName", "CreateTime", "Event", "EventKey"]
-}
 
 
 class Weixin(object):
@@ -31,6 +19,8 @@ class Weixin(object):
 
     def verify_request(self, signature=None, timestamp=None, nonce=None, echostr=None):
         if signature and timestamp and nonce and echostr:
+            if not isinstance(timestamp, (str, unicode)):
+                timestamp = str(timestamp)
             args = [timestamp, self.token, nonce]
             args.sort()
             new_signature = hashlib.sha1(''.join(args)).hexdigest()
@@ -42,23 +32,19 @@ class Weixin(object):
 
     def handle_request(self, body):
         root = ET.fromstring(body)
-        try:
-            MsgType = root.find("MsgType").text
-        except AttributeError, e:
-            raise e
-        
         Param_dict = dict()
-        for KeyName in Api_Request[MsgType]:
-            try:
-                Param_dict[KeyName] = root.find(KeyName).text
-            except AttributeError, e:
-                raise e
-        self.MsgType = MsgType
+        for elem in root:
+            Param_dict[elem.tag] = elem.text
+        if "CreateTime" in Param_dict:
+            Param_dict["CreateTime"] = int(Param_dict["CreateTime"])
+        if "MsgId" in Param_dict:
+            Param_dict["MsgId"] = long(Param_dict["MsgId"])
+        self.MsgType = Param_dict["MsgType"]
         self.ToUserName = Param_dict["ToUserName"]
         self.FromUserName = Param_dict["FromUserName"]
         self.CreateTime = Param_dict['CreateTime']
-        self.FuncFlag = Param_dict['FuncFlag']
-        return MsgType, Param_dict
+        self.FuncFlag = 0
+        return Param_dict
 
     def handle_response(self, **kwargs):
         resp = {
@@ -80,9 +66,11 @@ class Weixin(object):
         if isinstance(content, dict):
             for key, value in content.itmes():
                 if isinstance(value, (unicode, str)):
-                    seq.append("<%s>%s</%s>" % (key, value, key))
+                    seq.append("<%s>%s</%s>" % (key, self._cdata(value), key))
                 elif isinstance(value, (list, dict)):
                     seq.append("<%s>%s</%s>" % (key, self._toxml(value), key))
+                elif isinstance(value, int):
+                    seq.append("<%s>%s</%s>" % (key, value, key))
                 else:
                     raise "%s is not support" % type(content)
         elif isinstance(content, list):
@@ -96,10 +84,10 @@ class Weixin(object):
 
         return ''.join(seq)
 
-    def misic(self, content):
+    def music(self, content):
         for key in ["Title", "Description", "MusicUrl", "HQMusicUrl"]:
             if key not in content:
-                raise "%s can't be None" % key
+                raise WeixinException("%s can't be None" % key)
         self.content = self._toxml(dict(Music=content))
     
     def news(self, content):
@@ -110,3 +98,7 @@ class Weixin(object):
 
     def text(self, content):
         self.content = self._toxml(dict(Content=content))
+
+
+class WeixinException(Exception):
+    pass
