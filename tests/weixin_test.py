@@ -75,4 +75,10 @@ def test_music():
                    MusicUrl="http://cloudaice.com/music",
                    HQMusicUrl="http://cloudaice.com/hqmusic")
     weixinhandler.music(content)
-    assert_equal(weixinhandler.content, )
+    xml_music = "<Music>" + \
+        "<Title><![CDATA[天空之城]]></Title>" + \
+        "<Description><![CDATA[著名陶笛音乐]]></Description>" + \
+        "<MusicUrl><![CDATA[http://cloudaice.com/music]]></MusicUrl>" + \
+        "<HQMusic><![CDATA[http://cloudaice.com/hqmusic]]></HQMusic>" + \
+        "</Music>"
+    assert_equal(weixinhandler.content, xml_music)
