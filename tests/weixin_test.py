@@ -81,25 +81,69 @@ def test_toxml():
 
 def test_music():
     weixinhandler = Weixin(token="weixin-token")
-    content = dict(Title="天空之城", Description="著名陶笛音乐",
-                   MusicUrl="http://cloudaice.com/music",
-                   HQMusicUrl="http://cloudaice.com/hqmusic")
+    content = dict(Title=u"天空之城", Description=u"著名陶笛音乐",
+                   MusicUrl=u"http://cloudaice.com/music",
+                   HQMusicUrl=u"http://cloudaice.com/hqmusic")
     weixinhandler.music(content)
-    root = ET.fromstring(weixinhandler.content)
+    root = ET.fromstring(weixinhandler.content.encode("utf-8"))
     params = dict()
     for elem in root:
         params[elem.tag] = elem.text
-    for k, v in params.items():
-        if isinstance(k, unicode):
-            k = k.encode("utf-8")
-        if isinstance(v, unicode):
-            v = v.encode("utf-8")
-        params[k] = v
     assert_equal(content, params)
 
 
 def test_text():
     weixinhandler = Weixin(token="weixin-token")
-    content = "你好，我在测试微信开放API的Python包"
+    content = u"你好，我在测试微信开放API的Python包"
     weixinhandler.text(content)
-    assert_equal(weixinhandler.content, "<Content><![CDATA[你好，我在测试微信开放API的Python包]]></Content>")
+    assert_equal(weixinhandler.content, u"<Content><![CDATA[你好，我在测试微信开放API的Python包]]></Content>")
+
+
+def test_news():
+    weixinhandler = Weixin(token="weixin-token")
+    content = [
+        dict(
+            Title=u"Python Web 开发之道",
+            Description=u"Tornado 是一个好框架",
+            PicUrl="http://cloudaice.com/tornado",
+            Url="http://cloudaice.com/tornado"
+        ),
+        dict(
+            Title=u"Python 开发微信应用",
+            Description=u"使用Python开发微信应用",
+            PicUrl="http://cloudaice.com/python",
+            Url="http://cloudaice.com/weixin"
+        )]
+    weixinhandler.news(content)
+
+    weixincontent = u"<xml>" + weixinhandler.content + u"</xml>"
+    root = ET.fromstring(weixincontent.encode("utf-8"))
+
+    def foo(root):
+        dic = {}
+        for elem in root:
+            if elem.text is None:
+                if elem.tag in dic:
+                    if isinstance(dic[elem.tag], list):
+                        dic[elem.tag].append(foo(elem))
+                    else:
+                        dic[elem.tag] = [dic[elem.tag]]
+                        dic[elem.tag].append(foo(elem))
+                else:
+                    dic[elem.tag] = foo(elem)
+            else:
+                if elem.tag in dic:
+                    if isinstance(dic[elem.tag], list):
+                        dic[elem.tag].append(elem.text)
+                    else:
+                        dic[elem.tag] = [dic[elem.tag]]
+                        dic[elem.tag].append(elem.text)
+                else:
+                    dic[elem.tag] = elem.text
+        return dic
+
+    params = foo(root)
+    if "ArticleCount" in params:
+        params['ArticleCount'] = int(params['ArticleCount'])
+    content = {"ArticleCount": 2, "Articles": {"item": content}}
+    assert_equal(params, content)
