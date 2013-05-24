@@ -56,6 +56,8 @@ class Weixin(object):
         }
         resp = self._toxml(resp)
         xml_body = "<xml>" + resp + self.content + "</xml>"
+        if isinstance(xml_body, unicode):
+            xml_body.encode("utf-8")
         return xml_body
 
     def _cdata(self, s):
@@ -93,7 +95,7 @@ class Weixin(object):
     def news(self, content):
         articles = len(content)
         self.tag = "item"
-        self.content = "<ArticleCount>%s</ArticleCount>" % articles
+        self.content = "<ArticleCount>%d</ArticleCount>" % articles
         self.content += self._toxml(dict(Articles=content))
 
     def text(self, content):
