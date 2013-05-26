@@ -12,7 +12,14 @@
 --------
 
     pip install weixin
-    pip install https://github.com/cloudaice/weixin/archive/master.zip
+
+Or
+
+    pip install https://github.com/cloudaice/weixin/zipball/master
+
+Or
+
+    pip install git+git://github.com/cloudaice/weixin.git@master
 
 
 
