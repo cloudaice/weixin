@@ -1,2 +1,4 @@
 *.swp
 *.pyc
+dist/
+weixin.egg-info
