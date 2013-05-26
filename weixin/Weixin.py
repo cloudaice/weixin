@@ -7,6 +7,10 @@ except ImportError:
     import xml.etree.ElementTree as ET
 
 
+class WeixinException(Exception):
+    pass
+
+
 class Weixin(object):
     def __init__(self, token=None):
         self.token = token
@@ -17,10 +21,13 @@ class Weixin(object):
         self.FuncFlag = None
         self.content = ''
 
-    def verify_request(self, signature=None, timestamp=None, nonce=None, echostr=None):
+    def verify_request(self, signature=None, timestamp=None,
+                       nonce=None, echostr=None):
         if signature and timestamp and nonce and echostr:
             if not isinstance(timestamp, (str, unicode)):
                 timestamp = str(timestamp)
+            if self.token is None:
+                raise WeixinException("token can not be None")
             args = [timestamp, self.token, nonce]
             args.sort()
             new_signature = hashlib.sha1(''.join(args)).hexdigest()
@@ -74,15 +81,18 @@ class Weixin(object):
                 elif isinstance(value, int):
                     seq.append("<%s>%d</%s>" % (key, value, key))
                 else:
-                    raise "%s is not support" % type(content)
+                    raise WeixinException("type %s is not support in dict" %
+                                          type(content))
         elif isinstance(content, list):
             for item in content:
                 if isinstance(item, dict):
                     seq.append("<%s>%s</%s>" % (self.tag, self._toxml(item), self.tag))
                 else:
-                    raise "%s is not support" % type(content)
+                    raise WeixinException("%s is not support in list" %
+                                          type(content))
         else:
-            raise "%s is not support" % type(content)
+            raise WeixinException("%s is not support in content" %
+                                  type(content))
 
         return ''.join(seq)
 
@@ -100,7 +110,3 @@ class Weixin(object):
 
     def text(self, content):
         self.content = self._toxml(dict(Content=content))
-
-
-class WeixinException(Exception):
-    pass
